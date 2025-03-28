@@ -16,7 +16,7 @@ from tensorflow import keras
 from keras import utils
 
 
-class FloodAreaDataset(utils.PyDataset):
+class FloodAreaDataset(utils.Sequence):
 
     def __init__(self, img_paths, mask_paths, batch_size, img_size: list|tuple):
         assert len(img_paths) == len(mask_paths)
