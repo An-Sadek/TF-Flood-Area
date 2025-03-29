@@ -6,8 +6,12 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
+from tensorflow import keras
+from keras import Input, Model
 from dataset.FloodArea import FloodAreaDataset
 from model.UNet import UNET
+
+from keras import losses, metrics
 
 # Hyperparameter
 BATCH_SIZE = 8
@@ -71,4 +75,15 @@ val_batch = tf.data.Dataset.from_generator(
 )
 val_batch = val_batch.prefetch(tf.data.AUTOTUNE)
 
-# Setting model
+# Set up model
+unet_layer = UNET([64, 128, 256, 512])
+inputs = Input(shape=(
+    IMG_SZ[0],
+    IMG_SZ[1],
+    1
+), batch_size=BATCH_SIZE)
+outputs = unet_layer(inputs)
+
+model = Model(inputs=inputs, outputs=outputs)
+
+# Training prepare

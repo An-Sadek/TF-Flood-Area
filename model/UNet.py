@@ -60,6 +60,7 @@ class UNET(layers.Layer):
     def __init__(self, filters, feature_fraction=1):
         super(UNET, self).__init__()
 
+        assert len(filters) == 4
         assert feature_fraction in [2**i for i in range(0, 7)]
         filters = [value // feature_fraction for value in filters]
         # [64, 128, 256, 512]
@@ -145,5 +146,3 @@ if __name__ == "__main__":
     unet_layer = UNET([64, 128, 256, 512])
     unet_result = unet_layer(unet_data)
     print("UNET output shape:", unet_result.shape)
-
-    
