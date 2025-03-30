@@ -16,9 +16,9 @@ from tensorflow import keras
 from keras import utils
 
 
-class FloodAreaDataset(utils.Sequence):
+class FloodAreaDataset(utils.PyDataset):
 
-    def __init__(self, img_paths, mask_paths, batch_size, img_size: list|tuple):
+    def __init__(self, img_paths, mask_paths, batch_size, img_size: list|tuple, mask_size: list|tuple=None):
         assert len(img_paths) == len(mask_paths)
         assert len(img_size) == 2
         assert img_size[0] == img_size[1]
@@ -27,16 +27,18 @@ class FloodAreaDataset(utils.Sequence):
         self.mask_paths = list(mask_paths)
         self.batch_size = batch_size
         self.img_size = img_size
+        self.mask_size = mask_size if mask_size is not None else img_size
 
         self.batches = math.ceil(len(self.img_paths) / batch_size)
 
     def __len__(self):
-        return self.batches
+        return math.ceil(len(self.img_paths) / self.batch_size)
     
     def __getitem__(self, idx):
         # Lay idx theo batch size
         start_idx = idx * self.batch_size
-        end_idx = idx + self.batch_size
+        # Khong de vuot qua gioi han
+        end_idx = min(start_idx + self.batch_size, len(self.img_paths))
         
         # Lay duong dan cua batch hien tai
         # De phong khi batch cuoi nho
@@ -68,17 +70,24 @@ class FloodAreaDataset(utils.Sequence):
         # Batch mask
         mask_batch = np.zeros(shape=(
             curr_batch_size,
-            self.img_size[0],
-            self.img_size[1],
-            1 # Mask anh nhi phan
-        ), dtype=bool)
+            self.mask_size[0],
+            self.mask_size[1],
+            2 # Mask anh nhi phan, onehot
+        ), dtype=np.float32)
 
         for i in range(len(curr_mask_paths)):
             mask = Image.open(curr_mask_paths[i]).convert("L")
-            mask = mask.resize(self.img_size)
+
+            # Chuẩn hoá kích thước theo đầu ra
+            mask = mask.resize(self.mask_size)
             mask = np.array(mask, dtype=np.float32)
+
+            # Chuyển về nhị phân
             mask = np.where(mask >= 127, 1, 0)
-            mask = np.expand_dims(mask, axis=2)
+
+            # Chuyển về one hot
+            mask = np.eye(2)[mask.squeeze()]
+
             mask_batch[i] = mask
 
         return (
@@ -142,7 +151,8 @@ if __name__ == "__main__":
         img_paths=X_train, 
         mask_paths=y_train,
         batch_size=16, 
-        img_size=(56, 56)
+        img_size=(56, 56),
+        mask_size=(75, 75)
     )
     img_batch, mask_batch = dataset[0]
 
@@ -163,6 +173,7 @@ if __name__ == "__main__":
     pil_mask = Image.fromarray(mask)
     pil_mask.save("test/mask.jpg")
     print("Unique value: ", np.unique(mask_single))
+    print("Shape of mask: ", mask_single.shape)
     print()
 
     # Kiem tra tung batch
@@ -190,5 +201,12 @@ if __name__ == "__main__":
     )
     print(len(test_dataset))
 
-    
+    for idx in range(len(dataset)):
+        if idx == len(dataset)-1:
+            print(dataset[0][0].shape)
+            print(dataset[0][1].shape)
+            print()
+
+
+
 
